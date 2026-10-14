@@ -1,6 +1,9 @@
 
-from app.database import database_connection
+from app.database import database_connection, DATABASE_URL
 from app.schemas import StudentCreate, StudentUpdate
+
+
+PLACEHOLDER = "%s" if DATABASE_URL else "?"
 
 
 def row_to_dict(row):
@@ -11,6 +14,29 @@ def create_student(student: StudentCreate):
     data = student.model_dump(mode="json")
 
     with database_connection() as conn:
+        if DATABASE_URL:
+            row = conn.execute(
+                """
+                INSERT INTO students (
+                    name, date_of_birth, email, phone,
+                    course, address, enrollment_date
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING *
+                """,
+                (
+                    data["name"],
+                    data["date_of_birth"],
+                    data["email"],
+                    data["phone"],
+                    data["course"],
+                    data["address"],
+                    data["enrollment_date"],
+                ),
+            ).fetchone()
+
+            return row_to_dict(row)
+
         cursor = conn.execute(
             """
             INSERT INTO students (
@@ -49,18 +75,18 @@ def list_students(
     params = []
 
     if name:
-        sql += " AND name LIKE ?"
+        sql += f" AND name LIKE {PLACEHOLDER}"
         params.append(f"%{name}%")
 
     if course:
-        sql += " AND course LIKE ?"
+        sql += f" AND course LIKE {PLACEHOLDER}"
         params.append(f"%{course}%")
 
     if born_after:
-        sql += " AND date_of_birth > ?"
+        sql += f" AND date_of_birth > {PLACEHOLDER}"
         params.append(born_after.isoformat())
 
-    sql += " ORDER BY student_id LIMIT ? OFFSET ?"
+    sql += f" ORDER BY student_id LIMIT {PLACEHOLDER} OFFSET {PLACEHOLDER}"
     params.extend([limit, offset])
 
     with database_connection() as conn:
@@ -71,7 +97,7 @@ def list_students(
 def get_student(student_id: int):
     with database_connection() as conn:
         row = conn.execute(
-            "SELECT * FROM students WHERE student_id = ?",
+            f"SELECT * FROM students WHERE student_id = {PLACEHOLDER}",
             (student_id,),
         ).fetchone()
 
@@ -83,17 +109,17 @@ def update_student(student_id: int, student: StudentUpdate):
 
     with database_connection() as conn:
         cursor = conn.execute(
-            """
+            f"""
             UPDATE students SET
-                name = ?,
-                date_of_birth = ?,
-                email = ?,
-                phone = ?,
-                course = ?,
-                address = ?,
-                enrollment_date = ?,
+                name = {PLACEHOLDER},
+                date_of_birth = {PLACEHOLDER},
+                email = {PLACEHOLDER},
+                phone = {PLACEHOLDER},
+                course = {PLACEHOLDER},
+                address = {PLACEHOLDER},
+                enrollment_date = {PLACEHOLDER},
                 updated_at = CURRENT_TIMESTAMP
-            WHERE student_id = ?
+            WHERE student_id = {PLACEHOLDER}
             """,
             (
                 data["name"],
@@ -111,7 +137,7 @@ def update_student(student_id: int, student: StudentUpdate):
             return None
 
         row = conn.execute(
-            "SELECT * FROM students WHERE student_id = ?",
+            f"SELECT * FROM students WHERE student_id = {PLACEHOLDER}",
             (student_id,),
         ).fetchone()
 
@@ -121,7 +147,7 @@ def update_student(student_id: int, student: StudentUpdate):
 def delete_student(student_id: int):
     with database_connection() as conn:
         cursor = conn.execute(
-            "DELETE FROM students WHERE student_id = ?",
+            f"DELETE FROM students WHERE student_id = {PLACEHOLDER}",
             (student_id,),
         )
 

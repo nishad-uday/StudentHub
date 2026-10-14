@@ -3,9 +3,5 @@ services:
   - type: web
     name: studenthub-api
     runtime: docker
-    plan: starter
+    plan: free
     healthCheckPath: /health
-    disk:
-      name: studenthub-data
-      mountPath: /data
-      sizeGB: 1
