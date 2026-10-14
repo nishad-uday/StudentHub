@@ -1,6 +1,6 @@
 
 import re
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import (
     BaseModel,
@@ -74,5 +74,5 @@ class StudentUpdate(StudentBase):
 
 class StudentResponse(StudentBase):
     student_id: int
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
